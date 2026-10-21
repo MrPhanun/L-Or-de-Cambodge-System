@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>L&rsquo;Or de Cambodge - Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=3">
+</head>
+<body>
+  <div class="intro" id="intro" aria-hidden="true">
+    <div class="curtain curtain-left"></div>
+    <div class="curtain curtain-right"></div>
+    <div class="spotlight"></div>
+
+    <div class="intro-content">
+      <svg class="man" viewBox="0 0 200 240" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path class="draw" style="--d:.1s" pathLength="1" d="M74 58C74 28 126 28 126 58C126 88 112 98 100 98C88 98 74 88 74 58Z"/>
+        <path class="draw" style="--d:.4s" pathLength="1" d="M88 94V112M112 94V112"/>
+        <path class="draw" style="--d:.6s" pathLength="1" d="M20 232L26 150C30 128 62 118 88 112L100 150L112 112C138 118 170 128 174 150L180 232"/>
+        <path class="draw" style="--d:1s" pathLength="1" d="M88 112L66 168L100 210L134 168L112 112"/>
+        <path class="draw" style="--d:1.3s" pathLength="1" d="M100 210V234"/>
+        <path class="tie" d="M95 126H105L108 150L100 194L92 150Z"/>
+        <path class="tie" d="M94 120H106L104 128H96Z"/>
+      </svg>
+
+      <h2 class="intro-title" id="introTitle">L&rsquo;Or de Cambodge</h2>
+      <p class="intro-tag">Tailored for the modern man</p>
+    </div>
+
+    <button type="button" class="skip" id="skip">Skip</button>
+  </div>
+
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+
+  <main class="card" id="card">
+    <div class="brand">
+      <div class="logo" id="logo" title="Replay intro" aria-hidden="true">L</div>
+      <span class="brand-name">L&rsquo;Or de Cambodge</span>
+    </div>
+    <div class="greeting">
+      <canvas class="gent" id="gent" width="208" height="208" role="img" aria-label="3D man in a suit holding his tie"></canvas>
+      <h1>Bonjour</h1>
+    </div>
+    <p class="sub" id="sub">Sign in with your email and password. We will take you to the right place.</p>
+
+    <form id="loginForm" novalidate>
+      <div class="field">
+        <input type="text" id="email" name="email" autocomplete="username" placeholder=" ">
+        <label for="email" id="idLabel">Email or phone</label>
+        <div class="error" id="emailError"></div>
+      </div>
+
+      <div class="field">
+        <input type="password" id="password" name="password" autocomplete="current-password" placeholder=" ">
+        <label for="password" id="pwLabel">Password</label>
+        <button type="button" class="toggle" id="toggle" aria-label="Show password">Show</button>
+        <div class="error" id="passwordError"></div>
+      </div>
+
+      <div class="row">
+        <button type="button" class="linkbtn" id="pinSwitch">Staff: sign in with PIN</button>
+        
+      </div>
+
+      <button type="submit" class="submit" id="submit">
+        <span class="label">Sign in</span>
+        <span class="spinner" aria-hidden="true"></span>
+      </button>
+      <div class="msg" id="msg" role="status"></div>
+    </form>
+
+    <form id="registerForm" class="hidden" novalidate>
+      <div class="field"><input type="text" id="rName" autocomplete="name" placeholder=" "><label for="rName">Full name</label><div class="error" id="rNameError"></div></div>
+      <div class="field"><input type="email" id="rEmail" autocomplete="email" placeholder=" "><label for="rEmail">Email</label><div class="error" id="rEmailError"></div></div>
+      <div class="field"><input type="tel" id="rPhone" autocomplete="tel" placeholder=" "><label for="rPhone">Phone (optional)</label><div class="error" id="rPhoneError"></div></div>
+      <div class="field"><input type="password" id="rPassword" autocomplete="new-password" placeholder=" "><label for="rPassword">Password (8+ characters)</label><div class="error" id="rPasswordError"></div></div>
+      <button type="submit" class="submit" id="rSubmit"><span class="label">Create account</span><span class="spinner" aria-hidden="true"></span></button>
+      <div class="msg" id="rMsg" role="status"></div>
+    </form>
+
+    <div class="divider"><span>or</span></div>
+    <div class="socials"><button type="button" class="social" id="google">Continue with Google</button></div>
+
+    <p class="footer" id="switchLine">New here? <a href="#" id="switchLink">Create an account</a></p>
+    <details class="demo" id="demo"><summary>Demo accounts</summary>
+      <div>Client: client@lordecambodge.com / Client@1234</div>
+      <div>Seller: seller@lordecambodge.com / Seller@1234 (PIN 1234)</div>
+      <div>Tailor: tailor@lordecambodge.com / Tailor@1234 (PIN 3456)</div>
+      <div>Manager: manager@lordecambodge.com / Manager@1234 (PIN 4567)</div>
+      <div>Admin: admin@lordecambodge.com / Admin@1234 (PIN 0000)</div>
+    </details>
+  </main>
+
+  <script src="script.js?v=3"></script>
+  <script src="three.min.js"></script>
+  <script src="gent3d.js"></script>
+  <script src="intro.js"></script>
+</body>
+</html>
