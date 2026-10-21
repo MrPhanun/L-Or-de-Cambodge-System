@@ -29,6 +29,12 @@ There is **one sign-in form** (email or phone + password); the system sends you 
 
 More test data and click-through scenarios: [docs/SAMPLE_DATA.md](docs/SAMPLE_DATA.md).
 
+### Deploy on GitHub Pages
+
+The repository includes `.github/workflows/pages.yml`, which publishes the `public/` folder to GitHub Pages every time you push to `main`.
+One-time setup: on GitHub open **Settings > Pages > Build and deployment > Source** and choose **GitHub Actions**. After the next push the site is at `https://<your-user>.github.io/<repo-name>/`.
+The published copy runs in `development` mode (demo data and demo accounts) unless you change `ENV` in `public/js/config.js`. Remember each visitor's data stays in their own browser.
+
 ---
 
 ## 2. Development vs Production
