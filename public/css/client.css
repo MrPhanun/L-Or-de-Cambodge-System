@@ -120,3 +120,35 @@ body.site {
 .acct-nav { display: grid; gap: 2px; position: sticky; top: 130px; } .acct-nav a { padding: 11px 14px; text-decoration: none; font-size: .9rem; border-left: 2px solid transparent; cursor: pointer; color: #3a3830; } .acct-nav a:hover { background: var(--panel-2); } .acct-nav a.active { border-color: #14130f; font-weight: 700; background: var(--panel-2); }
 @media (max-width: 900px) { .acct-nav { display: flex; overflow-x: auto; position: static; } .acct-nav a { white-space: nowrap; border-left: 0; border-bottom: 2px solid transparent; } .acct-nav a.active { border-bottom-color: #14130f; } }
 .page-title { font-size: 2rem; margin-bottom: 22px; }
+
+/* ---------- responsive hardening (storefront) ---------- */
+.site-main, .acct > *, .pdp > *, .shop-layout > * { min-width: 0; }
+@media (max-width: 900px) {
+  .acct { grid-template-columns: minmax(0, 1fr); }
+  .announce { font-size: .66rem; padding: 7px 10px; letter-spacing: .04em; }
+  .hdr-in { height: 56px; } .hdr .logo-link b { font-size: .95rem; letter-spacing: .02em; } .hdr .logo-link .mark { width: 30px; height: 30px; }
+  .mainnav a { padding: 11px 12px; font-size: .72rem; }
+  .hero .copy { padding: 30px 20px; } .hero { min-height: 0; } .hero h1 { font-size: 2rem; }
+  .sec { margin-top: 40px; } .sec-head h2 { font-size: 1.5rem; }
+  .tile .lbl { padding: 12px; font-size: .74rem; } .service { padding: 24px 20px; }
+  .shop-head h1 { font-size: 1.7rem; } .shop-head .row { width: 100%; } .shop-head .row input[type=search] { flex: 1; width: auto !important; }
+  .pdp h1 { font-size: 1.6rem; } .pdp .gal { grid-template-columns: 1fr; } .pdp .gal .thumbs { grid-auto-flow: column; grid-auto-columns: 64px; order: 2; overflow-x: auto; }
+  .page-title { font-size: 1.6rem; margin-bottom: 14px; }
+  .site-foot { padding: 32px 18px 24px; }
+}
+@media (max-width: 600px) {
+  .site .products { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 12px; }
+  .site .pcard .nm { font-size: .84rem; } .site .pcard .small { font-size: .72rem; }
+  .site-foot .in { grid-template-columns: 1fr 1fr; gap: 22px; } .site-foot .in > div:first-child { grid-column: 1 / -1; }
+  .loyal { padding: 24px 18px; } .trust { padding: 18px 0; }
+  .mainnav { padding: 0 4px; }
+  .filters.open { padding: 16px; }
+}
+
+/* phones: logo + icons on the first row, full-width search on its own row */
+@media (max-width: 900px) {
+  .hdr-in { grid-template-columns: minmax(0, 1fr) auto; height: auto; row-gap: 8px; padding: 8px 14px 10px; }
+  .hdr .logo-link { order: 1; } .hdr .right { order: 2; } .hdr .left { order: 3; grid-column: 1 / -1; }
+  .searchbox { display: block; } .searchbox input { width: 100%; border: 1px solid #cfcac0; border-radius: 2px; padding: 9px 10px 9px 32px; background: #fff; } .searchbox svg { top: 11px; left: 10px; }
+  .site-main { scroll-margin-top: 140px; }
+}

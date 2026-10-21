@@ -55,7 +55,7 @@ async function viewPos(box, ctx) {
       <select id="pcol"><option value="">Any color</option>${colors.map(c => H`<option>${c}</option>`)}</select><select id="pfit"><option value="">Any fit</option>${['Slim', 'Regular', 'Classic'].map(c => H`<option>${c}</option>`)}</select></div>
     <div class="chips" id="pcats">${['All', ...cat.categories.map(c => c.name)].map(c => H`<span class="chip ${c === 'All' ? 'active' : ''}" data-act="cat" data-v="${c}">${c}</span>`)}</div>
     <div class="products dense" id="pgrid"></div></div>
-    <div class="card cart" id="cart"></div></div></div>`);
+    <div class="card cart" id="cart"></div></div><button class="cart-fab hidden" id="fab" data-act="gocart"></button></div>`);
 
   const drawGrid = () => {
     const f = posState.filter, t = f.q.toLowerCase();
@@ -94,6 +94,8 @@ async function viewPos(box, ctx) {
         ${paid > total ? '' : ''}</div>
       <button class="btn primary lg block" data-act="checkout" style="margin-top:10px" ${(shiftInfo?.shift ? '' : 'disabled')}>${shiftInfo?.shift ? (due > 0 ? (paid > 0 ? 'Save with balance due' : 'Reserve (no payment)') : 'Complete sale') : 'Open a cash shift first'}</button>
       <button class="btn block" data-act="hold" style="margin-top:6px">Hold order</button>` : ''}`);
+    const fab = $('#fab', box), count = posState.items.reduce((n, i) => n + i.qty, 0);
+    if (fab) { fab.classList.toggle('hidden', !count); render(fab, H`<span>Current sale: ${count} item${count === 1 ? '' : 's'}</span><b>${usd(total)}</b>`); }
     api.get('/api/held').then(h => { const e = $('#hc', cartBox); if (e) e.textContent = h.length; }).catch(() => {});
   };
 
@@ -161,7 +163,7 @@ async function viewPos(box, ctx) {
     fullpay: async () => { const amt = Math.round((quote.total - payTotal()) * 100) / 100; if (!(amt > 0)) throw new Error('Nothing left to pay.'); posState.payments.push({ method: $('#pm', box).value, amount: amt, kind: 'payment' }); await drawCart(); },
     delpay: async (t) => { posState.payments.splice(Number(t.dataset.i), 1); await drawCart(); }, checkout,
     hold: async () => { const label = posState.customer?.name || `Hold ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`; await api.post('/api/held', { label, cart: { items: posState.items, promo: posState.promo, discount: posState.discount, customer: posState.customer, customerId: posState.customer?.user_id } }); resetPos(); toast('Order held', 'ok'); await drawCart(); },
-    held: heldDialog },
+    held: heldDialog, gocart: () => $('#cart', box).scrollIntoView({ behavior: 'smooth', block: 'start' }) },
     input: {}, change: {} });
   box.addEventListener('input', (e) => { if (e.target.id === 'pq') { posState.filter.q = e.target.value; drawGrid(); } });
   box.addEventListener('keydown', (e) => { if (e.target.id === 'pq' && e.key === 'Enter') { const v = e.target.value.trim(); const hit = cat.products.find(p => p.barcode === v || p.sku.toLowerCase() === v.toLowerCase()); if (hit) { e.target.value = ''; posState.filter.q = ''; drawGrid(); pick(hit.product_id); } }
