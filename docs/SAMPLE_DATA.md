@@ -1,6 +1,6 @@
 # Sample data and test scenarios
 
-Loaded by `npm run setup-db` (rebuild any time with `npm run setup-db -- --reset`, which wipes the database).
+**Development only.** Loaded automatically into the browser on the first visit when `ENV` is `development` (public/js/config.js). To start over: Admin > Settings > *Reset demo data*. A `production` copy starts empty and shows first-time owner setup instead.
 
 ## Accounts
 One sign-in form for everyone: type the email and password and you land in the right view. (Staff PIN: use the "Staff: sign in with PIN" link.)
@@ -87,4 +87,4 @@ Also seeded: 1 **overdue rental** (Bopha Lim), 2 alteration tickets, 2 appointme
 12. **Lockout** - enter a wrong password 5 times for any account: locked for 15 minutes (Admin > Staff > Reset unlocks it).
 13. **Reports** - Admin > Reports, 30 days: totals, best sellers by size/color/style, per-seller commission, cash reconciliation.
 
-Run the automated checks with `npm test` (needs the server running and a freshly reset database).
+Run the automated checks by opening `public/tests.html` (development only; it resets the demo data before and after).

@@ -392,3 +392,5 @@ body:not(.ready) form > * { animation-play-state: paused; }
 
 /* keep the card centred when there is room, but let the page scroll when the card is taller than the window */
 .card { margin-block: auto; }
+
+.env-tag { position: fixed; left: 12px; bottom: 12px; z-index: 50; background: #f0b429; color: #1a1405; font-weight: 800; font-size: .7rem; letter-spacing: .14em; padding: 4px 10px; border-radius: 6px; }

@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" href="data:,">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>L&rsquo;Or de Cambodge - Login</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
   <div class="intro" id="intro" aria-hidden="true">
@@ -74,6 +75,17 @@
       <div class="msg" id="msg" role="status"></div>
     </form>
 
+
+    <form id="setupForm" class="hidden" novalidate>
+      <p class="sub" style="margin-top:0">Welcome! This shop has no accounts yet. Create the owner (admin) account.</p>
+      <div class="field"><input type="text" id="sName" autocomplete="name" placeholder=" "><label for="sName">Your name</label><div class="error" id="sNameError"></div></div>
+      <div class="field"><input type="email" id="sEmail" autocomplete="email" placeholder=" "><label for="sEmail">Email</label><div class="error" id="sEmailError"></div></div>
+      <div class="field"><input type="password" id="sPassword" autocomplete="new-password" placeholder=" "><label for="sPassword">Password (12+ characters)</label><div class="error" id="sPasswordError"></div></div>
+      <div class="field"><input type="text" id="sPin" inputmode="numeric" autocomplete="off" placeholder=" "><label for="sPin">Counter PIN, 4-6 digits (optional)</label><div class="error" id="sPinError"></div></div>
+      <button type="submit" class="submit" id="sSubmit"><span class="label">Create owner account</span><span class="spinner" aria-hidden="true"></span></button>
+      <div class="msg" id="sMsg" role="status"></div>
+    </form>
+
     <form id="registerForm" class="hidden" novalidate>
       <div class="field"><input type="text" id="rName" autocomplete="name" placeholder=" "><label for="rName">Full name</label><div class="error" id="rNameError"></div></div>
       <div class="field"><input type="email" id="rEmail" autocomplete="email" placeholder=" "><label for="rEmail">Email</label><div class="error" id="rEmailError"></div></div>
@@ -87,7 +99,7 @@
     <div class="socials"><button type="button" class="social" id="google">Continue with Google</button></div>
 
     <p class="footer" id="switchLine">New here? <a href="#" id="switchLink">Create an account</a></p>
-    <details class="demo" id="demo"><summary>Demo accounts</summary>
+    <details class="demo hidden" id="demo"><summary>Demo accounts</summary>
       <div>Client: client@lordecambodge.com / Client@1234</div>
       <div>Seller: seller@lordecambodge.com / Seller@1234 (PIN 1234)</div>
       <div>Tailor: tailor@lordecambodge.com / Tailor@1234 (PIN 3456)</div>
@@ -96,7 +108,12 @@
     </details>
   </main>
 
-  <script src="script.js?v=3"></script>
+  <script src="js/config.js"></script>
+  <script src="js/backend/core.js"></script>
+  <script src="js/backend/services.js"></script>
+  <script src="js/backend/routes.js"></script>
+  <script src="js/backend/seed.js"></script>
+  <script src="script.js?v=5"></script>
   <script src="three.min.js"></script>
   <script src="gent3d.js"></script>
   <script src="intro.js"></script>

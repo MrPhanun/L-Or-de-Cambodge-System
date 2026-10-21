@@ -1,2 +1,4 @@
+# Secrets and generated files
 .env
+.env.*
 node_modules/

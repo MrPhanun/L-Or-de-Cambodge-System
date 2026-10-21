@@ -8,7 +8,7 @@ const { HttpError } = require('./services');
 
 const app = express();
 app.disable('x-powered-by');
-app.set('trust proxy', false);
+app.set('trust proxy', config.trustProxy || false);
 
 // ---- security headers ----
 app.use((req, res, next) => {
@@ -53,5 +53,6 @@ app.use((err, req, res, next) => {          // eslint-disable-line no-unused-var
 });
 
 getPool().then(() => {
-  app.listen(config.port, () => console.log(`L'Or de Cambodge POS running at http://localhost:${config.port}/login.html`));
+  if (config.isProd && !config.secureCookies) console.warn('WARNING: production is running without SECURE_COOKIES=1. Serve it over HTTPS and set SECURE_COOKIES=1.');
+  app.listen(config.port, () => console.log(`[${config.env.toUpperCase()}] L'Or de Cambodge POS running at http://localhost:${config.port}/login.html  (database: ${config.db.database})`));
 }).catch((e) => { console.error('Cannot connect to SQL Server:', e.message); process.exit(1); });

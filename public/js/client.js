@@ -347,8 +347,8 @@ function parseRoute() {
 async function bootSite() {
   document.body.classList.add('site');
   const me = await api.get('/api/auth/me').catch(() => null);
-  if (!me || me.user.view !== 'client') { location.replace('/login.html'); return; }
-  Shell.user = me.user; Shell.settings = await api.get('/api/settings'); Object.assign(Fmt.settings, Shell.settings);
+  if (!me || me.user.view !== 'client') { location.replace('login.html'); return; }
+  Shell.user = me.user; Shell.settings = await api.get('/api/settings'); Object.assign(Fmt.settings, Shell.settings); devTag(Shell.settings);
   const s = Shell.settings, u = Shell.user;
   const cats = (await api.get('/api/catalog')).categories.map(c => c.name);
   const app = $('#app');
@@ -393,7 +393,7 @@ async function bootSite() {
   window.addEventListener('hashchange', route);
   bind(app, { click: {
     bell: () => Shell.toggleBell(), acct: () => $('#acctMenu').classList.toggle('hidden'),
-    logout: async () => { await api.post('/api/auth/logout').catch(() => {}); location.href = '/login.html'; } } });
+    logout: async () => { await api.post('/api/auth/logout').catch(() => {}); location.href = 'login.html'; } } });
   document.addEventListener('click', (e) => { if (!e.target.closest('#acctMenu') && !e.target.closest('[data-act="acct"]')) $('#acctMenu')?.classList.add('hidden'); if (!e.target.closest('#bellBox') && !e.target.closest('[data-act="bell"]')) $('#bellBox')?.classList.add('hidden'); });
   $('#hsearch').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.value.trim()) { location.hash = '#/shop/All?q=' + encodeURIComponent(e.target.value.trim()); e.target.value = ''; } });
   Shell.setUnread(me.unread); ctx.setBadge('cart', cartCount());

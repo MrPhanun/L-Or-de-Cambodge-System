@@ -1,40 +1,21 @@
 # L'Or de Cambodge - POS & Store Management System
 
-A suit shop system with **three separate views** - **Client**, **Seller** (cashier / tailor) and **Admin** (owner / manager) - each with its own sign-in, dashboard and permissions.
+A suit shop system with **three separate views** - **Client** (online shop), **Seller** (cashier / tailor) and **Admin** (owner / manager) - each with its own dashboard and permissions.
 
-| Layer | Technology |
-|---|---|
-| Front end | HTML, CSS, vanilla JavaScript (no framework, no build step) |
-| Back end | Node.js + Express 4 |
-| Database | Microsoft SQL Server (`mssql` driver, parameterised queries only) |
-| Auth | scrypt-hashed passwords & PINs, random session tokens in an HttpOnly cookie, role + permission checks on the server |
-
-> You wrote "Node.js + SQL Server", so that is what this is built on. The browser never decides anything about money, stock or permissions - every price is recalculated on the server and every endpoint checks the signed-in user's permissions.
+**Built with only HTML, CSS and browser JavaScript.** No Node.js, no database server, nothing to install. All data is saved in your browser (localStorage).
 
 ---
 
-## 1. Setup and run
+## 1. Run it
 
-```text
-1. SQL Server is running (default instance, SQL logins enabled).
-2. In this folder:   npm install
-3. Create the database login (already done on this PC - see .env).  To do it elsewhere, run in SSMS / sqlcmd:
-     CREATE DATABASE LorDeCambodgeDB;
-     CREATE LOGIN lodc_app WITH PASSWORD = '<strong password>';
-     USE LorDeCambodgeDB; CREATE USER lodc_app FOR LOGIN lodc_app; ALTER ROLE db_owner ADD MEMBER lodc_app;
-   and put the values in a file named .env (copy .env.example).
-4. Create tables + sample data:   npm run setup-db          (add  -- --reset  to wipe and rebuild)
-5. Start:                          npm start     (or double-click run.cmd)    ->  http://localhost:5500/login.html
-6. Stop:                           stop.cmd
-7. Check everything works:         npm test      (92 automated API checks; server must be running)
-```
+* **Easiest:** double-click `open-site.cmd` (or open `public/login.html` in Chrome / Edge / Firefox).
+* **Or serve the folder** with any static host: VS Code "Live Server", GitHub Pages, Netlify, Render "Static Site", etc. Publish the `public/` folder.
 
-`.env` holds the database password - never share or commit it. Run behind HTTPS in production and set `SECURE_COOKIES=1`.
+On the very first visit the sample data is created in the background (about 2 seconds). Then sign in with one of the accounts below.
 
-### Sample accounts (created by `npm run setup-db`)
+### Sample accounts (development)
 
-There is **one sign-in form** (email or phone + password). The server looks up the account's role and sends you to the right view automatically. Staff can also use the small "Staff: sign in with PIN" link at the counter.
-
+There is **one sign-in form** (email or phone + password); the system sends you to the right view. Staff can also use the small "Staff: sign in with PIN" link.
 
 | Role | Opens | Email | Password | PIN |
 |---|---|---|---|---|
@@ -46,66 +27,65 @@ There is **one sign-in form** (email or phone + password). The server looks up t
 | Manager | admin.html | manager@lordecambodge.com | Manager@1234 | 4567 |
 | Owner / Admin | admin.html | admin@lordecambodge.com | Admin@1234 | 0000 |
 
-Change these before real use (Admin > Staff > Reset password / PIN).
-
-**Sample data:** 24 products in 7 categories with sizes and stock, 2 suppliers, promo codes `WELCOME10` (10%) and `KHMER15` (15%), a Linen Season sale on shirts, two bundle deals (Suit+Tie 10%, Suit+Shirt+Shoes 12%), and about 26 demo orders spread over recent weeks (in-store and online, a custom tailoring order, an overdue rental, alteration tickets, appointments).
+More test data and click-through scenarios: [docs/SAMPLE_DATA.md](docs/SAMPLE_DATA.md).
 
 ---
 
-## 2. System overview
+## 2. Development vs Production
+
+Set in [`public/js/config.js`](public/js/config.js):
+
+| | `ENV: 'development'` (default) | `ENV: 'production'` |
+|---|---|---|
+| First visit | Loads the full demo: 7 accounts, 24 products, about 26 orders | Shows **"First-time setup"**: the owner creates the admin account (12+ character password). Empty shop, no demo data |
+| Sign-in page | Shows the demo accounts and a yellow **DEV** tag | Shows neither |
+| Tests (`tests.html`) | Run | Refuse to run |
+| "Reset demo data" button (Admin > Settings) | Available | Hidden |
+
+Each website address (and each browser) keeps its **own separate data**, so a dev copy and a production copy never mix. Publish production with `ENV: 'production'` and keep a dev copy for experiments.
+
+---
+
+## 3. How it works
 
 ```text
- Browser (HTML/CSS/JS)              Node.js + Express                       SQL Server
- ┌───────────────────┐   fetch   ┌──────────────────────────┐   mssql   ┌─────────────────────┐
- │ login.html        │ ────────► │ middleware: session,     │ ────────► │ LorDeCambodgeDB     │
- │ client.html       │  JSON +   │   CSRF header, rate limit│  params   │  Users, Roles, ...  │
- │ seller.html       │  cookie   │ routes: api.js, admin.js │           │  Orders, Products   │
- │ admin.html        │ ◄──────── │ services.js (all rules,  │ ◄──────── │  Sessions, Audit    │
- └───────────────────┘           │   transactions, pricing) │           └─────────────────────┘
+ Screens (HTML + CSS + JS) --api.get('/api/...')--> js/backend/routes.js   the "API", answered inside the browser
+                                                    js/backend/services.js all business rules: pricing, stock, refunds, rentals, shifts
+                                                    js/backend/core.js     storage, PBKDF2 password hashing, permissions
+                                                    js/backend/seed.js     sample data / first-run setup
+                                                    localStorage           the database (key "lodc_db_v3")
 ```
 
+The screens (`client.js`, `seller.js`, `admin.js`) are written as if they talked to a server. `api()` in `js/lib.js` hands each call to `js/backend/`, which checks it, applies the rules, saves the result and returns JSON. The rules live in one place, so a real server could be put behind the same calls later.
+
 ### Roles and permissions
-
-| Role | View | Can do (default permissions) |
+| Role | View | Can do (default) |
 |---|---|---|
-| **client** | client.html | Shop, cart, checkout, own orders/measurements/appointments/rentals/tailoring, loyalty, notifications |
-| **seller** | seller.html | POS, orders, refunds/exchanges, customers, alterations, rentals, appointments, stock check, own performance, clock-in & cash shift |
-| **tailor** | seller.html | Alteration tickets, appointments, stock check, view orders, own performance |
-| **manager** | admin.html | Everything operational: products, inventory & purchasing, promotions, reports, orders, tailoring, rentals, customers, activity log. **Not** staff management or settings |
-| **admin** | admin.html | Everything, including staff, per-person permission overrides and settings |
+| client | client.html | Shop, bag, checkout, own orders / measurements / appointments / rentals / tailoring, loyalty, notifications |
+| seller | seller.html | POS, orders, refunds & exchanges, customers, alterations, rentals, appointments, stock check, own performance, clock-in & cash shift |
+| tailor | seller.html | Alteration tickets, appointments, stock check, view orders, own performance |
+| manager | admin.html | Products, inventory & purchasing, promotions, reports, orders, tailoring, rentals, customers, activity log (no staff management or settings) |
+| admin | admin.html | Everything, including staff, per-person permission overrides and settings |
 
-Each person can also have **overrides** (allow / deny a single permission), a **discount limit %** and a **commission %**. A server-side check (`requirePerm(...)`) guards every endpoint and each HTML page is only served to the matching role.
+Each person can have **permission overrides**, a **discount limit %** and a **commission %**.
 
-### User flow - Client
-1. **Register** (name, email, optional phone, password) or **sign in** with email or phone. *(Google sign-in needs an OAuth client ID and is not connected - the button explains this.)*
-2. **Shop**: browse 7 categories; filter by size, color, fabric, fit, price, stock; open a product (3 pictures, description, sizes with stock status).
-3. **Cart & checkout**: add items, apply promo code, redeem loyalty points, choose pickup/delivery, pay by KHQR / ABA Pay / card (**simulated - no real money moves**) or **pay in store**. Bundle deals and seasonal sales apply automatically.
-4. **My measurements**: save chest, waist, shoulder, sleeve, inseam, neck.
-5. **Custom tailoring**: choose garment, fabric, fit, style, notes -> becomes an order that moves *Pending -> Tailoring -> Ready -> Picked Up / Delivered*.
-6. **Appointments**: book a fitting or consultation (09:00-18:00, max 2 per slot); reminder the day before.
-7. **Suit rental**: choose size and dates, pay rental + refundable deposit; late return fee comes out of the deposit.
-8. **My orders**: track status steps, see payments, receipt, cancel an unpaid pending order, reorder.
-9. **Loyalty**: 1 point per $1 (before VAT); 100 points = $1; levels Member / Silver (500) / Gold (1,500) / VIP (3,000).
-10. **Notifications**: order updates, pickup reminders (Ready for 2+ days), fitting reminders, promotions.
-
-### User flow - Seller
-1. **PIN login** at the counter (or password) -> **Clock in** -> **Open cash shift** with a float.
-2. **POS**: search by name / SKU / **scan barcode** -> pick size (or rent / made-to-measure) -> choose customer (or walk-in / new) -> discount (limited to *their* limit), promo, points -> take **split payments**, a **deposit**, or a **partial payment** -> print or email the receipt. **Hold** a sale and **resume** it later.
-3. **Orders**: fulfil online orders (Ready -> Picked Up/Delivered), collect a remaining balance (goods cannot leave until paid), cancel, **refund** or **exchange a size** (stock adjusts automatically; refund window enforced).
-4. **Rentals**: check out (rentals are paid in full) and **check in** (late fee + damage fee taken from the deposit).
-5. **Alteration tickets**: create, assign a tailor, update status (Received -> In Progress -> Ready -> Collected); the customer is notified when ready.
-6. **Customers**: look up profile, measurements, purchase history; create new customers.
-7. **Appointments**: today's fittings, confirm / complete / no-show / cancel.
-8. **Stock check** by size and color; **My performance** (sales, commission estimate); **Shift & cash**: end-of-shift report (expected vs counted cash, variance) -> **Clock out**.
-
-### User flow - Admin / Manager
-Dashboard (revenue, orders, top products, low stock, chart) -> **Products** (add/edit/delete or archive, categories, sizes, prices, cost, images, rentable/tailorable) -> **Inventory** (levels, adjustments with reason, movement log, suppliers, purchase orders -> receive stock) -> **Promotions** (codes, seasonal sales, bundles, send promo notifications) -> **Orders** (all channels, change status, refunds) -> **Tailoring** (custom orders, workload per tailor, alterations) -> **Rentals** (schedule, overdue, rental items) -> **Customers & loyalty levels** -> **Staff** (create users, roles, discount limits, commission, permissions, reset credentials, attendance, cash shifts) -> **Reports** (daily / weekly / monthly, best sellers by size / color / style, per seller, inventory value & profit, VAT, cash reconciliation, CSV export) -> **Settings** (shop info, logo, VAT, USD/KHR, payment methods, receipt text, rules) -> **Activity log**.
+### Feature tour
+* **Client:** storefront with filters (size, colour, fabric, fit, price), product pages with stock status, bag with promo codes and loyalty points, checkout (KHQR / ABA / card are **simulated**, or pay in store), My measurements, custom tailoring requests, fittings, suit rental with deposit and late fees, order tracking (Pending -> Tailoring -> Ready -> Picked Up / Delivered), loyalty tiers (Member / Silver / Gold / VIP), notifications.
+* **Seller:** PIN login, clock-in/out, cash shift, POS (name / SKU / barcode search, sizes, split / deposit / partial payments, hold & resume, receipts), refunds and size exchanges, rentals check-out / check-in, alteration tickets, customer lookup, fittings, stock check, performance & commission, end-of-shift cash report.
+* **Admin / manager:** dashboard, products & categories, inventory (adjustments, movements, suppliers, purchase orders), promotions (codes, seasonal sales, bundles, broadcasts), orders, tailoring workload, rentals, customers & VIP levels, staff & permissions, attendance, reports (daily / weekly / monthly, best sellers by size / colour / style, per seller, inventory value, VAT, cash reconciliation, CSV), settings (shop info, logo, VAT, USD/KHR, payment methods, receipt text), **backup & restore**, activity log.
 
 ---
 
-## 3. Database design (ERD)
+## 4. Backup, moving, and what "data in the browser" means
 
-Tables are created by [`server/schema.sql`](server/schema.sql). Diagram (renders on GitHub, VS Code with a Mermaid extension, and mermaid.live):
+* Data lives only in the browser that created it - **not shared between computers or users.** One cashier PC = one shop database.
+* **Back up regularly:** Admin > Settings > *Export backup*. Move to another computer or browser with *Restore from file*.
+* Clearing the browser's site data deletes the shop. Back up first.
+* Browser storage is limited (about 5 MB). Product photos are shrunk when uploaded, but a very busy shop will eventually need a real server.
+
+## 5. Data model (ERD)
+
+The data is stored as collections (arrays of records) in the browser, with the same names and relationships as the tables below. Diagram (renders on GitHub, VS Code with a Mermaid extension, and mermaid.live):
 
 ```mermaid
 erDiagram
@@ -219,14 +199,14 @@ erDiagram
 
 **Design notes**
 * `Orders.total` = subtotal - bundle - discount - points + VAT + rental deposit. The amount paid is the **sum of `OrderPayments`**, so split payments, deposits and later balance payments are all just more rows; `balance = total - paid`.
-* Stock is only changed through one function that does `UPDATE ... WHERE stock + delta >= 0` (atomic, can never go negative) and writes a `StockMovements` row.
+* Stock is only changed through one function (`moveStock`) that refuses to go below zero and writes a stock-movement record.
 * Made-to-measure lines have `variant_id = NULL` (no stock is held).
-* `Sessions.token_hash` stores only a SHA-256 of the cookie token, so a database leak does not leak live sessions.
+* Sign-in sessions keep only a SHA-256 of a random token (the token itself stays in the tab's sessionStorage).
 * `AuditLog` records who did what, when, and from which IP.
 
 ---
 
-## 4. Main screens
+## 6. Main screens
 
 | View | Screens |
 |---|---|
@@ -237,41 +217,40 @@ erDiagram
 
 ---
 
-## 5. Code walkthrough (build order)
+## 7. Security - please read
 
-| Step | File | What it does |
-|---|---|---|
-| 1 | `server/schema.sql` | All tables, keys, checks, indexes |
-| 2 | `server/config.js`, `server/db.js` | `.env` loader, connection pool, `q()` (parameterised query) and `tx()` (transaction) helpers |
-| 3 | `server/security.js`, `server/perms.js` | scrypt hashing, session tokens, cookies, rate limiter; permission list and role defaults |
-| 4 | `server/services.js` | **All business rules**: pricing (sale, bundle, promo, points, VAT), orders, payments, stock, refunds, exchanges, rentals, alterations, shifts |
-| 5 | `server/middleware.js` | session loading, `requirePerm`, CSRF header check, page guards |
-| 6 | `server/routes/api.js`, `server/routes/admin.js` | REST endpoints (`/api/...` and `/api/admin/...`) |
-| 7 | `server/index.js` | Express app, security headers (CSP etc.), static files, error handling |
-| 8 | `server/setup.js` | Creates tables, loads sample data |
-| 9 | `public/js/lib.js` | Safe HTML templates (auto-escaping), API client, modals, charts, product art, app shell, receipt |
-| 10 | `public/js/client.js`, `seller.js`, `admin.js`, `common.js` | The three views (+ code shared by seller and admin) |
-| 11 | `public/login.html`, `script.js` | Sign-in / registration page |
-| 12 | `server/test.js` | 92 automated checks (security, permissions, pricing, stock, refunds, rentals, lockout, ...) |
+Because there is no server, **every check runs in the visitor's browser**:
 
----
+* Passwords and PINs are stored as salted **PBKDF2-SHA256** hashes (120,000 rounds), never in plain text, and an account locks for 15 minutes after 5 wrong attempts.
+* Permissions are enforced by the app: each screen and action checks the signed-in user's role and permissions; discount limits, refund windows, stock and payment rules are enforced in the business-rule layer.
+* All text shown on screen is escaped (no raw HTML from data).
+* **But:** anyone who can open this browser's developer tools can read or edit the stored data and could bypass these checks. This design suits **one shop computer, a demo or a prototype**. It is **not** secure for real customers on the public internet, because each visitor's browser holds its own separate copy of the data and nothing is shared or protected centrally.
+* For a real public shop you need a server and a database (the original Node.js + SQL Server version is archived in `_old-node-version/`).
 
-## 6. Security summary
+## 8. Known limits
 
-* **Passwords & PINs**: scrypt (N=16384) with a unique random salt; compared in constant time. Never returned by any API.
-* **Sessions**: 256-bit random token in an `HttpOnly; SameSite=Strict` cookie (add `Secure` via `SECURE_COOKIES=1` on HTTPS); only its SHA-256 is stored; 8-hour expiry; logout and password change revoke sessions.
-* **Brute force**: per-IP rate limit on login/register and an account lockout (5 failures -> 15 minutes). Error messages do not reveal whether an account exists.
-* **Access control**: every API route checks the permission on the server; clients only ever see their own data; the page for each view is only served to that role; managers cannot touch admin accounts; the last active admin cannot be removed; users cannot disable themselves.
-* **Injection**: all SQL is parameterised; all HTML is built with an auto-escaping template tag; a strict Content-Security-Policy blocks inline scripts.
-* **CSRF**: SameSite=Strict cookies **plus** a required `X-Requested-With` header on every state-changing request.
-* **Money integrity**: prices come from the database, discounts are capped by the seller's limit, payments can't exceed the total, stock can't go below zero, goods can't be handed over with a balance due, refunds can't exceed what was bought/paid. Everything that touches several tables runs in one transaction.
-* **Audit**: logins (including failures), orders, payments, refunds, stock changes, staff changes, setting changes are all logged.
+* **Online payments are simulated** (KHQR, ABA Pay, card): orders are marked paid, no gateway is called, no card details are collected.
+* Google sign-in, email and SMS are not connected (receipts open your email app through a `mailto:` link).
+* Product pictures are generated drawings unless you upload a photo (Admin > Products > Edit).
+* Needs a modern browser (Chrome, Edge, Firefox, Safari) with JavaScript and localStorage enabled. Secure password hashing needs the page to be opened from `https://`, `http://localhost` or `file://` (a browser rule for Web Crypto).
 
-## 7. Known limits (be aware)
+## 9. Tests
 
-* **Online payments are simulated** (KHQR, ABA Pay, card): the order is recorded as paid, no gateway is called and no card details are collected. Connecting a real gateway (ABA PayWay / Bakong KHQR) is a separate integration.
-* **Google sign-in** and **email / SMS** sending are not connected (receipts open your email app through a `mailto:` link; notifications appear in the app).
-* The rate limiter and lockout counters that live in memory reset when the server restarts (lockouts are stored in the database and survive).
-* The product image is a generated picture unless the admin uploads one.
-* `npm audit` reports one moderate advisory in a dependency of the SQL Server driver (`sprintf-js`, denial of service through format strings). This app never passes user input as a format string, so it is not reachable here; update `mssql` when a fixed non-breaking release exists.
-* For production: HTTPS, a reverse proxy, regular database backups, and changing all sample passwords.
+Open `public/tests.html` (development only). It resets the demo data, runs **89 checks** (permissions, pricing, bundles, stock, refunds, exchanges, rentals, shifts, lockout, staff rules, backups...) and resets the data again. Every line should say `ok`.
+
+## 10. Files
+
+```text
+public/
+  login.html, script.js, style.css       sign-in, registration, first-run setup
+  client.html  seller.html  admin.html   the three views
+  css/app.css, css/client.css            styles (client.css = light storefront)
+  js/config.js                           ENV: 'development' | 'production'
+  js/backend/core.js services.js routes.js seed.js    the browser-side "server"
+  js/lib.js common.js client.js seller.js admin.js    the screens
+  js/tests.js, tests.html                in-browser tests
+  three.min.js, gent3d.js, intro.js      the animated 3D greeting on the sign-in page
+docs/SAMPLE_DATA.md                      accounts, products, test scenarios
+open-site.cmd                            opens the site
+_old-node-version/                       archived Node.js + SQL Server version
+```

@@ -27,13 +27,14 @@ const formData = (form) => Object.fromEntries(new FormData(form).entries());
 // ------------------------------------------------------------------ API
 class ApiError extends Error { constructor(m, status) { super(m); this.status = status; } }
 async function api(method, url, body) {
-  let res;
-  try { res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' }, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin' }); }
-  catch { throw new ApiError('Cannot reach the server. Is it running?', 0); }
-  let json = null; try { json = await res.json(); } catch { /* empty body */ }
-  if (res.status === 401 && !url.includes('/auth/login')) { location.href = '/login.html'; throw new ApiError('Please sign in.', 401); }
-  if (!res.ok) throw new ApiError(json?.error || `Request failed (${res.status})`, res.status);
-  return json;
+  // No server: the request is answered by the browser-side backend (js/backend/*.js) from this browser's localStorage.
+  try { return await LB.request(method, url, body === undefined ? undefined : JSON.parse(JSON.stringify(body))); }
+  catch (e) {
+    if (e instanceof ApiError) throw e;
+    if (e.status === 401 && !url.includes('/auth/login')) { location.href = 'login.html'; throw new ApiError('Please sign in.', 401); }
+    if (e.status) throw new ApiError(e.message, e.status);
+    console.error(e); throw new ApiError('Something went wrong. Please try again.', 500);
+  }
 }
 api.get = (u) => api('GET', u); api.post = (u, b) => api('POST', u, b ?? {}); api.put = (u, b) => api('PUT', u, b ?? {});
 api.patch = (u, b) => api('PATCH', u, b ?? {}); api.del = (u) => api('DELETE', u);
@@ -202,13 +203,15 @@ const ICONS = {
 };
 const icon = (n) => raw(`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[n] || ICONS.list}"/></svg>`);
 
+function devTag(settings) { if (settings?.env === 'development' && !document.querySelector('.env-tag')) { const t = document.createElement('div'); t.className = 'env-tag'; t.textContent = 'DEV'; document.body.appendChild(t); } }
+
 const Shell = {
   user: null, settings: null, ctx: null,
   /** nav: [{id,label,icon,perm?,section?}], views: {id: async (box, ctx) => void} */
   async mount({ expectedView, subtitle, nav, views, defaultView }) {
     const me = await api.get('/api/auth/me').catch(() => null);
-    if (!me || me.user.view !== expectedView) { location.replace('/login.html'); return new Promise(() => {}); }
-    this.user = me.user; this.settings = await api.get('/api/settings'); Object.assign(Fmt.settings, this.settings);
+    if (!me || me.user.view !== expectedView) { location.replace('login.html'); return new Promise(() => {}); }
+    this.user = me.user; this.settings = await api.get('/api/settings'); Object.assign(Fmt.settings, this.settings); devTag(this.settings);
     const can = (p) => !p || this.user.perms.includes('*') || this.user.perms.includes(p);
     let items = nav.filter(n => can(n.perm));
     items = items.filter((n, i) => !n.section || (items[i + 1] && !items[i + 1].section));   // hide section titles with no screens under them
@@ -236,7 +239,7 @@ const Shell = {
     window.addEventListener('hashchange', () => show(location.hash.replace('#/', '')));
     bind(app, { click: {
       menu: () => $('#side').classList.toggle('open'),
-      logout: async () => { await api.post('/api/auth/logout').catch(() => {}); location.href = '/login.html'; },
+      logout: async () => { await api.post('/api/auth/logout').catch(() => {}); location.href = 'login.html'; },
       account: () => this.accountDialog(),
       bell: () => this.toggleBell() } });
     app.addEventListener('click', (e) => { const a = e.target.closest('[data-nav]'); if (a) go(a.dataset.nav); });

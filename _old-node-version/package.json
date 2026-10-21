@@ -4,9 +4,15 @@
   "description": "POS and store management system for L'Or de Cambodge (Client / Seller / Admin)",
   "private": true,
   "main": "server/index.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "start": "node server/index.js",
-    "setup-db": "node server/setup.js",
+    "start": "node server/index.js --env=production",
+    "dev": "node server/index.js --env=development",
+    "setup-db": "node server/setup.js --env=development",
+    "setup-db:dev": "node server/setup.js --env=development",
+    "setup-db:prod": "node server/setup.js --env=production",
     "test": "node server/test.js"
   },
   "dependencies": {

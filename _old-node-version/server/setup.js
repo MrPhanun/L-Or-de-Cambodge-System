@@ -8,6 +8,7 @@ const { q, one, getPool, sql } = require('./db');
 const { PERMISSIONS, ROLE_PERMS, ROLES } = require('./perms');
 const { hashSecret } = require('./security');
 const S = require('./services');
+const config = require('./config');
 
 const SIZES = {
   Suits: ['46', '48', '50', '52', '54', '56'], Blazers: ['46', '48', '50', '52', '54', '56'], Trousers: ['30', '32', '34', '36', '38'],
@@ -65,11 +66,29 @@ async function mkUser(name, email, phone, role, password, pin, extra = {}) {
   return r.id;
 }
 
-async function seedBase() {
+/** Needed in every environment: roles, permissions, categories and shop settings. */
+async function seedCore() {
   for (const [name, id] of Object.entries(ROLES)) await q('INSERT INTO Roles (role_id, name) VALUES (@i, @n)', { i: id, n: name });
   for (const [code, label] of Object.entries(PERMISSIONS)) await q('INSERT INTO Permissions (code, label) VALUES (@c, @l)', { c: code, l: label });
   for (const [role, codes] of Object.entries(ROLE_PERMS)) for (const c of codes) await q('INSERT INTO RolePermissions (role_id, code) VALUES (@r, @c)', { r: ROLES[role], c });
+  const catIds = {};
+  for (const [name, sizes] of Object.entries(SIZES)) catIds[name] = (await one('INSERT INTO Categories (name, sizes) OUTPUT inserted.category_id AS id VALUES (@n, @s)', { n: name, s: sizes.join(',') })).id;
+  await S.saveSettings(S.SETTING_DEFAULTS);
+  return catIds;
+}
 
+/** PRODUCTION: no demo data. Creates only the first admin, whose email and password come from the environment. */
+async function seedProduction() {
+  const email = String(process.env.ADMIN_EMAIL || '').trim(), pw = String(process.env.ADMIN_PASSWORD || ''), pin = String(process.env.ADMIN_PIN || '');
+  if (!/^[^\s@]+@[^\s@]+[.][^\s@]+$/.test(email)) throw new Error('Set ADMIN_EMAIL (a valid email) in .env.production before creating the production database.');
+  if (pw.length < 12) throw new Error('Set ADMIN_PASSWORD (at least 12 characters) in .env.production before creating the production database.');
+  if (pin && !/^[0-9]{4,6}$/.test(pin)) throw new Error('ADMIN_PIN must be 4-6 digits (or leave it empty).');
+  await mkUser(process.env.ADMIN_NAME || 'Store Owner', email, '', 'admin', pw, pin || null, { discountLimit: 100 });
+  console.log(`Created the first admin: ${email}  (sign in, then change the password from Account)`);
+}
+
+/** DEVELOPMENT: demo accounts, products, promotions. */
+async function seedSampleData(catIds) {
   const ids = {};
   ids.admin = await mkUser('Store Owner', 'admin@lordecambodge.com', '+855 12 000 001', 'admin', 'Admin@1234', '0000', { discountLimit: 100 });
   ids.manager = await mkUser('Rith Manager', 'manager@lordecambodge.com', '+855 12 000 005', 'manager', 'Manager@1234', '4567', { discountLimit: 30, commissionPct: 1 });
@@ -81,8 +100,6 @@ async function seedBase() {
   ids.client2 = await mkUser('Bopha Lim', 'client2@lordecambodge.com', '+855 12 000 007', 'client', 'Client@1234', null, { points: 1800 });
   await q('INSERT INTO Measurements (user_id, chest, waist, shoulder, sleeve, inseam, neck) VALUES (@u, 98, 84, 45, 63, 80, 39)', { u: ids.client });
 
-  const catIds = {};
-  for (const [name, sizes] of Object.entries(SIZES)) catIds[name] = (await one('INSERT INTO Categories (name, sizes) OUTPUT inserted.category_id AS id VALUES (@n, @s)', { n: name, s: sizes.join(',') })).id;
   for (let i = 0; i < PRODUCTS.length; i++) {
     const [name, cat, fabric, fit, colorName, hex, price, cost, rent] = PRODUCTS[i];
     const p = await one(`INSERT INTO Products (sku, barcode, category_id, name, description, fabric, fit, color_name, color_hex, price, cost, rent_per_day, rent_deposit, tailorable)
@@ -102,7 +119,6 @@ async function seedBase() {
   const b1 = (await one("INSERT INTO Bundles (name, pct) OUTPUT inserted.bundle_id AS id VALUES ('Suit + Tie combo', 10)")).id;
   const b2 = (await one("INSERT INTO Bundles (name, pct) OUTPUT inserted.bundle_id AS id VALUES ('Suit + Shirt + Shoes', 12)")).id;
   for (const [b, cats] of [[b1, ['Suits', 'Ties']], [b2, ['Suits', 'Shirts', 'Shoes']]]) for (const c of cats) await q('INSERT INTO BundleCategories (bundle_id, category_id) VALUES (@b, @c)', { b, c: catIds[c] });
-  await S.saveSettings(S.SETTING_DEFAULTS);
   await S.notify(ids.client, 'Welcome to L’Or de Cambodge', 'Use code WELCOME10 for 10% off your first order.', 'promo');
   return ids;
 }
@@ -181,14 +197,20 @@ async function seedDemo(ids) {
 
 async function main() {
   const reset = process.argv.includes('--reset');
+  console.log(`Environment: ${config.env.toUpperCase()}   database: ${config.db.database} on ${config.db.server}`);
+  // Safety rails: the two environments must never be mixed up.
+  if (config.isProd && reset && process.env.ALLOW_PROD_RESET !== '1') throw new Error('Refusing to wipe the PRODUCTION database. (If you really mean it, set ALLOW_PROD_RESET=1 for this one command.)');
+  if (!config.isProd && /^lodecambodgedb$/i.test(config.db.database)) throw new Error('The development settings point at the production database name. Fix .env.development.');
+  if (config.isProd && /_dev$/i.test(config.db.database)) throw new Error('The production settings point at a development database. Fix .env.production.');
   await getPool();
   if (reset) { console.log('Dropping all tables...'); await dropAll(); }
   const exists = await one("SELECT OBJECT_ID('dbo.Users') AS id");
   if (!exists.id) { console.log('Creating schema...'); await createSchema(); }
   const any = await one('SELECT COUNT(*) AS n FROM Users');
   if (any.n === 0) {
-    console.log('Seeding base data...'); const ids = await seedBase();
-    console.log('Seeding demo orders...'); await seedDemo(ids);
+    console.log('Seeding core data (roles, permissions, categories, settings)...'); const catIds = await seedCore();
+    if (config.isProd) await seedProduction();
+    else { console.log('Seeding sample accounts and products...'); const ids = await seedSampleData(catIds); console.log('Seeding demo orders...'); await seedDemo(ids); }
   } else console.log('Database already has data - nothing to seed (use --reset to start over).');
   const counts = await one('SELECT (SELECT COUNT(*) FROM Users) users, (SELECT COUNT(*) FROM Products) products, (SELECT COUNT(*) FROM Orders) orders');
   console.log('Done:', counts);

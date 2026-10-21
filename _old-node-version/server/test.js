@@ -28,6 +28,9 @@ async function login(email, secret, tab, mode) {
 }
 
 (async () => {
+  const envInfo = await fetch(BASE + '/api/settings').then(r => r.json()).catch(() => null);
+  if (!envInfo) { console.error('Cannot reach ' + BASE + '. Start the DEV server first:  npm run dev'); process.exit(2); }
+  if (envInfo.env !== 'development') { console.error('REFUSING to run: ' + BASE + ' is a ' + envInfo.env.toUpperCase() + ' server. The tests create orders and users - run them against the DEV server only.'); process.exit(2); }
   section('Security basics');
   const anon = client();
   check('anonymous catalog is 401', (await anon.get('/api/catalog')).status === 401);

@@ -307,9 +307,19 @@ async function viewSettings(box, ctx) {
       <label class="f"><span>Late fee (% of daily rate per day)</span><input type="number" name="lateFeePct" min="0" value="${s.lateFeePct}"></label><label class="f"><span>Made-to-measure markup %</span><input type="number" name="tailorMarkupPct" min="0" value="${s.tailorMarkupPct}"></label>
       <label class="f"><span>Loyalty points per $1</span><input type="number" name="pointsPerDollar" min="0" step="0.1" value="${s.pointsPerDollar}"></label><label class="f"><span>Value of 1 point (USD)</span><input type="number" name="pointValue" min="0" step="0.001" value="${s.pointValue}"></label></div></div>
     <div class="card stack"><h2>Receipt template</h2><div class="grid g2"><label class="f"><span>Header line</span><input name="receiptHeader" value="${s.receiptHeader}"></label><label class="f"><span>Footer message</span><input name="receiptFooter" value="${s.receiptFooter}"></label></div></div>
+    <div class="card stack"><h2>Backup &amp; restore</h2><div class="alert small">All shop data lives <b>in this browser only</b> (no server). Export a backup regularly, and use it to move to another computer or browser. Anyone who can open this browser's developer tools can read or change the data, so use a computer you trust.</div>
+      <div class="row"><button type="button" class="btn" data-act="export">Export backup (.json)</button><label class="btn" style="cursor:pointer">Restore from file<input type="file" accept="application/json,.json" id="restoreFile" style="display:none"></label>
+      ${LB.env === 'development' ? H`<button type="button" class="btn danger" data-act="resetdemo">Reset demo data</button>` : ''}</div>
+      <div class="hint">Environment: <b>${LB.env}</b> (set in js/config.js). Restoring replaces everything currently stored here.</div></div>
     <div class="row" style="justify-content:flex-end"><button class="btn primary lg">Save settings</button></div></form>`);
   $('#logo', box).addEventListener('change', async (e) => { try { logo = await fileToDataUrl(e.target.files[0], 160, .85); render($('#lg', box), raw(`<img src="${logo}" style="width:100%;height:100%;object-fit:cover" alt="">`)); } catch (err) { toast(err.message, 'bad'); } });
-  bind(box, { click: { rmlogo: () => { logo = ''; render($('#lg', box), H`No logo`); } }, submit: { save: async (f) => { const d = formData(f); const body = { ...d, paymentMethods: [...$$('input[name=pm]:checked', f).map(c => c.value), 'Cash', 'Pay in store'], logo: logo ?? '' };
+  $('#restoreFile', box).addEventListener('change', async (e) => {
+    try { const f = e.target.files[0]; if (!f) return; const data = JSON.parse(await f.text()); if (!(await confirmBox('Replace ALL data in this browser with the backup? This cannot be undone.', { danger: true, okText: 'Restore' }))) return;
+      await api.post('/api/admin/restore', { data: data.data || data }); toast('Backup restored. Please sign in again.', 'ok'); setTimeout(() => { location.href = 'login.html'; }, 900); } catch (err) { toast(err.message || 'That file could not be read.', 'bad'); }
+  });
+  bind(box, { click: { rmlogo: () => { logo = ''; render($('#lg', box), H`No logo`); },
+    export: async () => { const d = await api.get('/api/admin/backup'); const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 1)], { type: 'application/json' })); a.download = `lordecambodge-backup-${todayStr()}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); toast('Backup downloaded', 'ok'); },
+    resetdemo: async () => { if (await confirmBox('Delete everything and reload the demo data?', { danger: true, okText: 'Reset' })) { await LB.resetDemo(); location.href = 'login.html'; } } }, submit: { save: async (f) => { const d = formData(f); const body = { ...d, paymentMethods: [...$$('input[name=pm]:checked', f).map(c => c.value), 'Cash', 'Pay in store'], logo: logo ?? '' };
     delete body.pm; await api.put('/api/admin/settings', body); toast('Settings saved. Reloading...', 'ok'); setTimeout(() => location.reload(), 700); } } });
 }
 

@@ -111,7 +111,7 @@ router.post('/auth/pin', requireAuth, requireRoles('seller', 'tailor', 'manager'
 // ================================================================ public shop data
 router.get('/settings', wrap(async (req, res) => {
   const s = await S.getSettings();
-  res.json({ storeName: s.storeName, address: s.address, phone: s.phone, logo: s.logo, vatPct: s.vatPct, currency: s.currency, khrRate: s.khrRate,
+  res.json({ env: config.env, storeName: s.storeName, address: s.address, phone: s.phone, logo: s.logo, vatPct: s.vatPct, currency: s.currency, khrRate: s.khrRate,
     paymentMethods: s.paymentMethods, lowStock: s.lowStock, rentalMaxDays: s.rentalMaxDays, lateFeePct: s.lateFeePct, refundDays: s.refundDays,
     receiptHeader: s.receiptHeader, receiptFooter: s.receiptFooter, pointValue: s.pointValue, pointsPerDollar: s.pointsPerDollar, tailorMarkupPct: s.tailorMarkupPct,
     maxSellerDiscount: s.maxSellerDiscount });

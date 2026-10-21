@@ -18,10 +18,8 @@ function setError(id, text) {
 function showMessage(el, text, type) { el.className = `msg ${type}`; el.textContent = text; }
 function shakeCard() { els.card.classList.remove('shake'); void els.card.offsetWidth; els.card.classList.add('shake'); }
 async function post(url, body) {
-  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' }, body: JSON.stringify(body), credentials: 'same-origin' });
-  let json = {}; try { json = await res.json(); } catch { /* empty */ }
-  if (!res.ok) throw new Error(json.error || 'Something went wrong. Please try again.');
-  return json;
+  try { return await LB.request('POST', url, body); }   // answered by the browser-side backend (no server)
+  catch (e) { throw new Error(e.status ? e.message : 'Something went wrong. Please try again.'); }
 }
 
 // ---------- tabs / modes ----------
@@ -90,3 +88,24 @@ els.reg.addEventListener('submit', async (e) => {
 
 for (const id of ['email', 'password', 'rName', 'rEmail', 'rPhone', 'rPassword']) $(id).addEventListener('input', () => setError(id, ''));
 applyMode();
+
+// First visit: the sample data is prepared in the background; production asks the owner to create the first account.
+LB.ready.then(() => {
+  if (LB.env === 'development') {
+    $('demo').classList.remove('hidden');
+    const tag = document.createElement('div'); tag.className = 'env-tag'; tag.textContent = 'DEV'; tag.title = 'Development environment: demo data, safe to wipe'; document.body.appendChild(tag);
+  }
+  if (LB.needsSetup()) { els.form.classList.add('hidden'); $('google').classList.add('hidden'); els.switchLine.classList.add('hidden'); els.pinSwitch.classList.add('hidden'); $('setupForm').classList.remove('hidden'); els.sub.textContent = 'First-time setup'; }
+}).catch(() => {});
+
+$('setupForm').addEventListener('submit', async (e) => {
+  e.preventDefault(); showMessage($('sMsg'), '', '');
+  const name = $('sName').value.trim(), email = $('sEmail').value.trim(), pw = $('sPassword').value, pin = $('sPin').value.trim();
+  const errs = { sName: name ? '' : 'Name is required.', sEmail: EMAIL_PATTERN.test(email) ? '' : 'Enter a valid email address.', sPassword: pw.length >= 12 ? '' : 'Use at least 12 characters.', sPin: !pin || /^[0-9]{4,6}$/.test(pin) ? '' : 'PIN is 4-6 digits.' };
+  for (const [id, t] of Object.entries(errs)) setError(id, t);
+  if (Object.values(errs).some(Boolean)) return shakeCard();
+  const btn = $('sSubmit'); btn.classList.add('loading'); btn.disabled = true;
+  try { await LB.setupOwner({ name, email, password: pw, pin }); const r = await post('/api/auth/login', { identifier: email, secret: pw, mode: 'password' }); location.href = r.home; }
+  catch (err) { showMessage($('sMsg'), err.message, 'bad'); shakeCard(); }
+  finally { btn.classList.remove('loading'); btn.disabled = false; }
+});
