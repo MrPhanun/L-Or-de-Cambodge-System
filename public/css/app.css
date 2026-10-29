@@ -34,7 +34,7 @@ h1 { font-size: 1.5rem; } h2 { font-size: 1.15rem; } h3 { font-size: 1rem; }
 .nav .sep { font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: #5f647c; padding: 14px 12px 4px; }
 .side .me { margin-top: auto; padding: 12px 8px 0; border-top: 1px solid var(--line); }
 .main { min-width: 0; display: flex; flex-direction: column; }
-.top { display: flex; align-items: center; gap: 12px; padding: 14px 24px; border-bottom: 1px solid var(--line); background: rgba(14,17,26,.8); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 20; }
+.top { display: flex; align-items: center; gap: 12px; padding: 14px 24px; border-bottom: 1px solid var(--line); background: rgba(14,17,26,.8); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 20; }
 .top h1 { font-size: 1.15rem; } .top .grow { min-width: 0; }
 .page { padding: 22px 24px 60px; max-width: 1400px; width: 100%; }
 .icon-btn.menu-btn { display: none; }
@@ -108,7 +108,7 @@ tbody tr:hover td { background: rgba(255,255,255,.025); } td.num, th.num { text-
 .size.active { background: var(--accent); border-color: var(--accent); } .size.out { opacity: .35; text-decoration: line-through; cursor: not-allowed; } .size small { display: block; font-weight: 400; font-size: .65rem; opacity: .75; }
 
 /* ---------- modal / toast ---------- */
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.65); display: grid; place-items: center; z-index: 100; padding: 16px; animation: fadein .2s; backdrop-filter: blur(3px); }
+.overlay { position: fixed; top: 0; right: 0; bottom: 0; left: 0; inset: 0; background: rgba(0,0,0,.65); display: grid; place-items: center; z-index: 100; padding: 16px; animation: fadein .2s; -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
 .modal { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; width: min(560px, 100%); max-height: 92vh; overflow-y: auto; box-shadow: 0 30px 80px rgba(0,0,0,.6); animation: pop .25s var(--ease); }
 .modal.wide { width: min(900px, 100%); } .modal.narrow { width: min(420px, 100%); }
 .modal header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); z-index: 2; }

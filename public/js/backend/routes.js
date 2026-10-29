@@ -515,6 +515,16 @@
   // ------------------------------------------------------------ dispatcher
   async function request(method, url, body, opts = {}) {
     if (LB.ready) await LB.ready;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      await LB.remote.pull();
+      let out, err;
+      try { out = await dispatch(method, url, body, opts); } catch (e) { err = e; }
+      if (await LB.remote.push()) { if (err) throw err; return out; }
+      LB.remote.discard();   // someone else saved first: fetch the newer data and run the request again
+    }
+    throw new HttpError(409, 'Another user changed the data at the same time. Please try again.');
+  }
+  async function dispatch(method, url, body, opts) {
     const [path, qs = ''] = String(url).replace(/^\/api/, '').split('?');
     const query = Object.fromEntries(new URLSearchParams(qs));
     let db = load();

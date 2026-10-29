@@ -48,10 +48,46 @@ window.LB = window.LB || {};
   const HOME_OF = { client: 'client.html', seller: 'seller.html', admin: 'admin.html' };
 
   // ------------------------------------------------------------ storage (every request works on a fresh copy and commits only on success)
-  const load = () => { try { const raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; } catch { return null; } };
+  // Two stores behind the same load()/save(): 'server' (PHP + MySQL, shared by every device; see api/store.php) or 'local' (this browser only).
+  // The request dispatcher works on an in-memory copy; remote.pull() fetches the latest copy first and remote.push() writes it back afterwards.
+  const API = 'api/store.php', mem = { db: null, ver: 0, dirty: false, mode: null };
+  const readLocal = () => { try { const raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; } catch { return null; } };
+  const remote = {
+    mode: () => mem.mode,
+    async detect() {
+      if (mem.mode) return mem.mode;
+      const want = (window.APP_CONFIG || {}).STORE || 'auto';
+      if (want !== 'local') {
+        try { const r = await fetch(API, { cache: 'no-store' }); const j = await r.json(); if (r.ok && j && 'version' in j) { mem.mode = 'server'; mem.ver = j.version; mem.db = j.data; return mem.mode; } } catch { /* no PHP backend here */ }
+        if (want === 'server') throw new HttpError(503, 'Cannot reach the server database (api/store.php).');
+      }
+      mem.mode = 'local'; mem.db = readLocal(); return mem.mode;
+    },
+    async pull() {
+      if (mem.mode !== 'server') { mem.db = readLocal(); return; }
+      const r = await fetch(API + '?since=' + mem.ver, { cache: 'no-store' }).catch(() => null);
+      if (!r || !r.ok) throw new HttpError(503, 'Cannot reach the server. Check your connection.');
+      const j = await r.json(); if (!j.unchanged) { mem.ver = j.version; mem.db = j.data; }
+    },
+    /** Writes the in-memory copy back. Returns false when someone else saved first (caller re-pulls and retries). */
+    async push() {
+      if (!mem.dirty) return true;
+      if (mem.mode !== 'server') { mem.dirty = false; return true; }
+      const r = await fetch(API, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'lodc' }, body: JSON.stringify({ version: mem.ver, data: mem.db }) }).catch(() => null);
+      if (!r) throw new HttpError(503, 'Cannot reach the server. Check your connection.');
+      if (r.status === 409) return false;
+      if (!r.ok) throw new HttpError(r.status === 413 ? 507 : 500, 'The server could not save the data.');
+      mem.ver = (await r.json()).version; mem.dirty = false; return true;
+    },
+    discard() { mem.dirty = false; }
+  };
+  const load = () => mem.db ? JSON.parse(JSON.stringify(mem.db)) : null;
   const save = (db) => {
-    try { localStorage.setItem(KEY, JSON.stringify(db)); }
-    catch { throw new HttpError(507, 'The browser storage is full. Export a backup (Admin > Settings) and remove old data.'); }
+    mem.db = db; mem.dirty = true;
+    if (mem.mode !== 'server') {
+      try { localStorage.setItem(KEY, JSON.stringify(db)); }
+      catch { throw new HttpError(507, 'The browser storage is full. Export a backup (Admin > Settings) and remove old data.'); }
+    }
   };
   const nextId = (db, name) => { db.seq[name] = (db.seq[name] || 0) + 1; return db.seq[name]; };
 
@@ -106,7 +142,7 @@ window.LB = window.LB || {};
     discountLimit: u.discount_limit, commissionPct: u.commission_pct, perms: effectivePerms(u) });
 
   Object.assign(LB, { KEY, HttpError, bad, forbidden, notFound, unauthorized, r2, nowIso, todayStr, ymd, str, num, PERMISSIONS, ROLE_PERMS, ROLES, VIEW_OF, HOME_OF,
-    load, save, nextId, randomHex, hashSecret, verifySecret, sha256, SETTING_DEFAULTS, getSettings, audit, notify, userById, effectivePerms, can, tierOf, discountLimitOf, actorOf });
+    load, save, remote, nextId, randomHex, hashSecret, verifySecret, sha256, SETTING_DEFAULTS, getSettings, audit, notify, userById, effectivePerms, can, tierOf, discountLimitOf, actorOf });
 
   // Whole days from date a to date b (both 'YYYY-MM-DD' or ISO timestamps). Positive when b is later.
   LB.daysBetween = (a, b) => { const t = (x) => new Date(String(x).length === 10 ? x + 'T00:00:00Z' : x).getTime(); return Math.round((t(b) - t(a)) / 864e5); };

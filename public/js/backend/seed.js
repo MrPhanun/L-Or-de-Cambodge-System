@@ -111,20 +111,20 @@
   async function build() {
     const db = emptyDb(), catIds = seedCore(db);
     if (LB.env === 'development') { const ids = await seedSample(db, catIds); seedOrders(db, ids); }
-    save(db);
+    save(db); await LB.remote.push();
   }
   /** Production first run: no users exist, so the sign-in page shows "Set up your shop" to create the owner. */
   LB.needsSetup = () => { const db = load(); return !!db && db.users.length === 0; };
   LB.setupOwner = async ({ name, email, password, pin }) => {
-    const db = load();
+    await LB.remote.pull(); const db = load();
     if (!db || db.users.length) throw LB.forbidden('The shop is already set up.');
     if (!String(name || '').trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || ''))) throw LB.bad('Enter your name and a valid email.');
     if (String(password || '').length < 12) throw LB.bad('Use a password of at least 12 characters for the owner account.');
     if (pin && !/^\d{4,6}$/.test(String(pin))) throw LB.bad('PIN must be 4-6 digits (or leave it empty).');
     await addUser(db, String(name).trim(), String(email).trim(), '', 'admin', password, pin || null, { discountLimit: 100 });
-    LB.audit(db, { id: 1, name: String(name).trim(), role: 'admin' }, 'setup', 'Owner account created'); save(db);
+    LB.audit(db, { id: 1, name: String(name).trim(), role: 'admin' }, 'setup', 'Owner account created'); save(db); await LB.remote.push();
   };
   /** Development only: throw everything away and load the demo data again. */
-  LB.resetDemo = async () => { if (LB.env !== 'development') throw LB.forbidden('Resetting is only available in development.'); try { sessionStorage.removeItem('lodc_sid'); } catch { /* ignore */ } localStorage.removeItem(LB.KEY); await build(); };
-  LB.ready = (async () => { if (!load()) await build(); })();
+  LB.resetDemo = async () => { if (LB.env !== 'development') throw LB.forbidden('Resetting is only available in development.'); try { sessionStorage.removeItem('lodc_sid'); } catch { /* ignore */ } localStorage.removeItem(LB.KEY); LB.remote.discard(); await build(); };
+  LB.ready = (async () => { await LB.remote.detect(); if (!load()) await build(); })();
 })(window.LB);

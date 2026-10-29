@@ -228,7 +228,7 @@ a:hover { color: #fff; }
 }
 .submit::before {
   content: "";
-  position: absolute; inset: 0;
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0;
   background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, .35) 50%, transparent 70%);
   transform: translateX(-120%);
 }
@@ -290,7 +290,7 @@ body:not(.ready) form > * { animation-play-state: paused; }
 
 /* ---------- cinematic intro ---------- */
 .intro {
-  position: fixed; inset: 0; z-index: 100;
+  position: fixed; top: 0; right: 0; bottom: 0; left: 0; inset: 0; z-index: 100;
   display: grid; place-items: center;
   overflow: hidden;
 }
@@ -309,7 +309,7 @@ body:not(.ready) form > * { animation-play-state: paused; }
 .intro.open .skip { opacity: 0; transition: opacity .4s; }
 
 .spotlight {
-  position: absolute; inset: 0;
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0; inset: 0;
   background: radial-gradient(circle at 50% 38%, rgba(47, 79, 163, .45), transparent 45%);
   opacity: 0;
   animation: spot 2.4s ease-out .2s forwards;
