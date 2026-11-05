@@ -91,10 +91,6 @@ applyMode();
 
 // First visit: the sample data is prepared in the background; production asks the owner to create the first account.
 LB.ready.then(() => {
-  if (LB.env === 'development') {
-    $('demo').classList.remove('hidden');
-    const tag = document.createElement('div'); tag.className = 'env-tag'; tag.textContent = 'DEV'; tag.title = 'Development environment: demo data, safe to wipe'; document.body.appendChild(tag);
-  }
   if (LB.needsSetup()) { els.form.classList.add('hidden'); $('google').classList.add('hidden'); els.switchLine.classList.add('hidden'); els.pinSwitch.classList.add('hidden'); $('setupForm').classList.remove('hidden'); els.sub.textContent = 'First-time setup'; }
 }).catch(() => {});
 

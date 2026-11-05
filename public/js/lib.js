@@ -203,7 +203,7 @@ const ICONS = {
 };
 const icon = (n) => raw(`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[n] || ICONS.list}"/></svg>`);
 
-function devTag(settings) { if (settings?.env === 'development' && !document.querySelector('.env-tag')) { const t = document.createElement('div'); t.className = 'env-tag'; t.textContent = 'DEV'; document.body.appendChild(t); } }
+function devTag() { /* no environment badge in production */ }
 
 const Shell = {
   user: null, settings: null, ctx: null,

@@ -23,6 +23,11 @@ try {
     out(503, ['error' => 'Cannot connect to the database.']);
 }
 
+// Copies the saved document into readable tables (api/mirror.php). A failure here never blocks the save itself.
+function mirror_safely(PDO $pdo, array $data): void {
+    try { require_once __DIR__ . '/mirror.php'; lodc_mirror($pdo, $data); } catch (Throwable $e) { error_log('lodc mirror: ' . $e->getMessage()); }
+}
+
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
@@ -46,12 +51,12 @@ if ($method === 'PUT') {
     if ($version === 0) {   // first ever save
         $st = $pdo->prepare('INSERT IGNORE INTO lodc_store (id, version, data) VALUES (1, 1, ?)');
         $st->execute([$json]);
-        if ($st->rowCount() === 1) out(200, ['version' => 1]);
+        if ($st->rowCount() === 1) { mirror_safely($pdo, $in['data']); out(200, ['version' => 1]); }
         out(409, ['error' => 'Conflict']);
     }
     $st = $pdo->prepare('UPDATE lodc_store SET data = ?, version = version + 1 WHERE id = 1 AND version = ?');
     $st->execute([$json, $version]);
-    if ($st->rowCount() === 1) out(200, ['version' => $version + 1]);
+    if ($st->rowCount() === 1) { mirror_safely($pdo, $in['data']); out(200, ['version' => $version + 1]); }
     out(409, ['error' => 'Conflict']);
 }
 
